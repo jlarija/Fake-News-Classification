@@ -2,6 +2,49 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+from sklearn.model_selection import train_test_split
+import pandas as pd
+import numpy as np
+import sys
+
+class DataFrameLoader():
+    """Class to load data and prepare it for training and evaluation."""
+    def __init__(self, path):
+        sys.stdout.write('Reading input file...\n')
+        sys.stdout.flush()
+
+        # Read the training dataframe
+        self.df = pd.read_pickle(path)
+        self.df_training = self.df[['vector', 'subject', 'Real']]
+                
+        # Convert features to numpy arrays
+        X = np.array(self.df_training['vector'].tolist())  # Features - array of vectors
+        y = np.array(self.df_training['Real'].tolist())    # Labels - array of 1s or 0s
+
+        # Split data into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        # Create Dataset instances
+        self.train_dataset = VectorizedTextDataset(X_train, y_train)
+        self.test_dataset = VectorizedTextDataset(X_test, y_test)
+
+        # Create DataLoader instances
+        self.train_loader = DataLoader(self.train_dataset, batch_size=2, shuffle=True)
+        self.test_loader = DataLoader(self.test_dataset, batch_size=2, shuffle=False)
+    
+class VectorizedTextDataset(Dataset):
+    def __init__(self, features, labels):
+        self.features = features
+        self.labels = labels
+    
+    def __len__(self):
+        return len(self.features)
+    
+    def __getitem__(self, idx):
+        feature = torch.tensor(self.features[idx], dtype=torch.float32)
+        label = torch.tensor(self.labels[idx], dtype=torch.long)
+        return feature, label
 
 class TextClassifier(nn.Module):
     def __init__(self, input_dim, num_classes):
@@ -24,7 +67,7 @@ def train_model(model, train_loader, criterion, optimizer, epochs=5):
             optimizer.step()  # Update weights
         print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
-def evaluate_model(model, loader):
+def evaluate_model(model, loader, path_out):
     model.eval()
     correct = 0
     total = 0
@@ -36,5 +79,6 @@ def evaluate_model(model, loader):
             total += labels.size(0)
     accuracy = correct / total
     # Save the model's state dictionary
-    torch.save(model.state_dict(), 'model.pth')
+    torch.save(model.state_dict(), path_out)
     return accuracy
+

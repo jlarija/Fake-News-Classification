@@ -7,9 +7,12 @@ import pandas as pd
 import pickle
 import json
 from collections import defaultdict
+import torch.nn as nn
+import torch.optim as optim
 
 # load local libraries
 import word2vec
+import nn_forward
 
 def main(args):
     """ Main function
@@ -62,7 +65,14 @@ def w2v(path_in, path_out):
     return
 
 def forward_nn(path_in, path_out):
-    
+    loader = nn_forward.DataFrameLoader(path_in)
+    input_dim = loader.train_dataset[0][0].shape[0]  # Dimension of input features
+    num_classes = len(set(loader.train_dataset.labels))  # Number of classes in the dataset
+    model = nn_forward.TextClassifier(input_dim, num_classes)
+    criterion = nn.CrossEntropyLoss()  # For multi-class classification
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    nn_forward.train_model(model, loader.train_loader, criterion, optimizer, epochs=5)
+    nn_forward.evaluate_model(model, loader.test_loader, path_out)
     return
 
 
