@@ -61,6 +61,9 @@ def w2v(path_in, path_out):
 
     return
 
+def forward_nn(path_in, path_out):
+    
+    return
 
 
 if __name__ == "__main__":
