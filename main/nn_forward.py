@@ -17,7 +17,8 @@ class DataFrameLoader():
         # Read the training dataframe
         self.df = pd.read_pickle(path)
         self.df_training = self.df[['vector', 'subject', 'Real']]
-                
+            
+        # encode the "subject" feature
         # Convert features to numpy arrays
         X = np.array(self.df_training['vector'].tolist())  # Features - array of vectors
         y = np.array(self.df_training['Real'].tolist())    # Labels - array of 1s or 0s
