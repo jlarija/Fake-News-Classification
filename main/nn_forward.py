@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 import sys
-
+import csv
 class DataFrameLoader():
     """Class to load data and prepare it for training and evaluation."""
     def __init__(self, path):
@@ -57,28 +57,38 @@ class TextClassifier(nn.Module):
         return x  # Softmax is applied during evaluation
 
 def train_model(model, train_loader, criterion, optimizer, epochs=5):
-    for epoch in range(epochs):
-        model.train()
-        for features, labels in train_loader:
-            optimizer.zero_grad()  # Clear previous gradients
-            outputs = model(features)  # Forward pass
-            loss = criterion(outputs, labels)  # Calculate loss
-            loss.backward()  # Backward pass
-            optimizer.step()  # Update weights
-        print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+    sys.stdout.write('Starting Model Training...\n')
+    with open('../output/loss_nn.csv', 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['Epoch', 'Loss'])  # Write header
+        for epoch in range(epochs):
+            model.train()
+            for features, labels in train_loader:
+                optimizer.zero_grad()  # Clear previous gradients
+                outputs = model(features)  # Forward pass
+                loss = criterion(outputs, labels)  # Calculate loss
+                loss.backward()  # Backward pass
+                optimizer.step()  # Update weights
+            print(f'Epoch {epoch+1}, Loss: {loss.item()}')
+            csv_writer.writerow([epoch + 1, loss.item()])
 
 def evaluate_model(model, loader, path_out):
-    model.eval()
+    '''Threshold is now kept at 0.5 but with the saved model it can be changed any time'''
+    sys.stdout.write('Model Evaluation...\n')
+    model.eval() # model is in evaluate mode
     correct = 0
     total = 0
     with torch.no_grad():
-        for features, labels in loader:
-            outputs = model(features)
-            _, predicted = torch.max(outputs, 1)  # Get the predicted class
-            correct += (predicted == labels).sum().item()
+        for features, labels in loader: # the loader is the dataset
+            outputs = model(features) # get the outputs
+            predicted = (outputs.squeeze() > 0.5).long()  # we only want to predict more than 0.8 - funny how you lose accuracy
+            correct += (predicted == labels).sum().item() 
             total += labels.size(0)
     accuracy = correct / total
     # Save the model's state dictionary
+    sys.stdout.write('Accuracy  ')
+    print(accuracy)
     torch.save(model.state_dict(), path_out)
-    return accuracy
+    sys.stdout.write('Model Saved in path_out\n')
+    return 
 

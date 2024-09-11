@@ -13,6 +13,7 @@ import torch.optim as optim
 # load local libraries
 import word2vec
 import nn_forward
+import class_xgboost
 
 def main(args):
     """ Main function
@@ -30,6 +31,26 @@ def main(args):
         '''This function trains word2vec on the given corpus'''
         path_out = args.path_out
         w2v(
+            path_in, 
+            path_out
+            )
+
+        return
+    
+    if args.task == 'train_nn':
+        '''This function trains a feedforward neural network with no hidden layers to predict news'''
+        path_out = args.path_out
+        forward_nn(
+            path_in, 
+            path_out
+            )
+
+        return
+    
+    if args.task == 'train_xgboost':
+        '''This function trains a feedforward neural network with no hidden layers to predict news'''
+        path_out = args.path_out
+        run_xgboost(
             path_in, 
             path_out
             )
@@ -75,6 +96,20 @@ def forward_nn(path_in, path_out):
     nn_forward.evaluate_model(model, loader.test_loader, path_out)
     return
 
+def run_xgboost(path_in, path_out):
+     # Initialize the XGBoostWord2Vec class
+    xgb_word2vec = class_xgboost.XGBoostWord2Vec(path=path_in)
+
+    # Encode features
+    xgb_word2vec.encode_features()
+
+    # Train the XGBoost model
+    xgb_word2vec.run_xgboost()
+
+    # Save the trained model
+    xgb_word2vec.save_model(path_out)
+    return
+
 
 if __name__ == "__main__":
     import argparse
@@ -83,12 +118,12 @@ if __name__ == "__main__":
 
     parser.add_argument(
         'task',
-        help='Task to perform - choice: \'word2vec\''
+        help='Task to perform - choice: \'word2vec\', \'train_nn\', \'train_xgboost\''
     )
 
     parser.add_argument(
         'path_in', default=None,
-        help='Input file path (csv file)')
+        help='Input file path (csv or pickle file)')
 
     parser.add_argument(
         '-path_out', default=None,
